@@ -1,0 +1,268 @@
+<!doctype html>
+<html lang="en">
+  <head>
+    <meta charset="UTF-8" />
+    <meta http-equiv="X-UA-Compatible" content="IE=edge" />
+    <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+    <script src="https://cdn.tailwindcss.com"></script>
+    <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.4.0/css/all.min.css">
+    <title>Python Terminal</title>
+    <style>
+      @import url('https://fonts.googleapis.com/css2?family=Fira+Code:wght@300;400;500;600&display=swap');
+      
+      body {
+        font-family: 'Fira Code', monospace;
+        background: linear-gradient(135deg, #0f766e 0%, #115e59 100%);
+        min-height: 100vh;
+      }
+      
+      .terminal-box {
+        box-shadow: 0 10px 30px rgba(0, 0, 0, 0.3);
+        border-radius: 8px;
+        overflow: hidden;
+      }
+      
+      .terminal-header {
+        background: linear-gradient(to right, #4b5563, #374151);
+        cursor: pointer;
+        transition: background 0.3s;
+      }
+      
+      .terminal-header:hover {
+        background: linear-gradient(to right, #4b5563, #4b5563);
+      }
+      
+      .terminal-content {
+        background: #1a1a1a;
+        height: 400px;
+        overflow-y: auto;
+        scrollbar-width: thin;
+        scrollbar-color: #4b5563 #1a1a1a;
+      }
+      
+      .terminal-content::-webkit-scrollbar {
+        width: 8px;
+      }
+      
+      .terminal-content::-webkit-scrollbar-track {
+        background: #1a1a1a;
+      }
+      
+      .terminal-content::-webkit-scrollbar-thumb {
+        background-color: #4b5563;
+        border-radius: 4px;
+      }
+      
+      .command-input {
+        background: transparent;
+        caret-color: #10b981;
+        width: 100%;
+      }
+      
+      .command-input:focus {
+        outline: none;
+      }
+      
+      .blinking-cursor {
+        animation: blink 1s infinite;
+      }
+      
+      @keyframes blink {
+        0%, 100% { opacity: 1; }
+        50% { opacity: 0; }
+      }
+      
+      .output-line {
+        margin-bottom: 8px;
+      }
+      
+      .python-logo {
+        color: #3776ab;
+        text-shadow: 0 0 8px rgba(55, 118, 171, 0.5);
+      }
+      
+      .command-history {
+        color: #d1d5db;
+      }
+      
+      .command-prompt {
+        color: #10b981;
+      }
+      
+      .command-path {
+        color: #3b82f6;
+      }
+      
+      .command-cursor {
+        color: #10b981;
+      }
+      
+      .error-message {
+        color: #ef4444;
+      }
+      
+      .success-message {
+        color: #10b981;
+      }
+    </style>
+  </head>
+  <body class="flex items-center justify-center min-h-screen p-4">
+    <div class="terminal-box w-full max-w-4xl">
+      <div class="terminal-header flex justify-between items-center text-white p-3">
+        <div class="flex items-center space-x-2">
+          <div class="w-3 h-3 rounded-full bg-red-500"></div>
+          <div class="w-3 h-3 rounded-full bg-yellow-500"></div>
+          <div class="w-3 h-3 rounded-full bg-green-500"></div>
+          <span class="ml-2 text-sm">Python Terminal v3.11</span>
+        </div>
+        <div class="text-sm">
+          <i class="fas fa-code mr-1"></i> Interactive Python Interpreter
+        </div>
+      </div>
+      
+      <div class="terminal-content p-4">
+        <div class="output-line text-center python-logo mb-6">
+          <pre class="text-lg">
+  _____       _   _                 
+ |  __ \     | | | |                
+ | |__) |   _| |_| |__   ___  _ __  
+ |  ___/ | | | __| '_ \ / _ \| '_ \ 
+ | |   | |_| | |_| | | | (_) | | | |
+ |_|    \__, |\__|_| |_|\___/|_| |_|
+         __/ |                      
+        |___/                       
+          </pre>
+        </div>
+        
+        <div class="output-line text-green-400 mb-4">
+          <i class="fas fa-info-circle mr-2"></i>Python 3.11.0 (default, Oct 24 2022, 18:26:48) interactive terminal
+        </div>
+        
+        <div class="output-line text-gray-300 mb-6">
+          Type "help", "copyright", "credits" or "license" for more information.
+        </div>
+        
+        <div id="command-history" class="command-history mb-4">
+          <!-- Command history will be displayed here -->
+        </div>
+        
+        <div class="flex items-center">
+          <span class="command-prompt font-bold">mentor:</span>
+          <span class="command-path">~/username $  </span>
+          <input type="text" id="command-input" class="command-input text-white" autofocus />
+          <span id="command-cursor" class="command-cursor blinking-cursor">|</span>
+        </div>
+      </div>
+      
+      <div class="bg-gray-800 text-gray-400 p-3 text-sm flex justify-between">
+        <div>
+          <i class="fas fa-lightbulb mr-1"></i> Tips: Use 'help()' for assistance
+        </div>
+        <div>
+          <span id="line-count">Line: 1</span>
+        </div>
+      </div>
+    </div>
+
+    <script>
+      document.addEventListener('DOMContentLoaded', function() {
+        const commandInput = document.getElementById('command-input');
+        const commandHistory = document.getElementById('command-history');
+        const commandCursor = document.getElementById('command-cursor');
+        const lineCount = document.getElementById('line-count');
+        
+        let commandCount = 0;
+        
+        // Focus on input when clicking anywhere in the terminal
+        document.querySelector('.terminal-content').addEventListener('click', function() {
+          commandInput.focus();
+        });
+        
+        // Handle command input
+        commandInput.addEventListener('keydown', function(e) {
+          if (e.key === 'Enter') {
+            e.preventDefault();
+            const command = commandInput.value.trim();
+            
+            if (command) {
+              // Add command to history
+              addCommandToHistory(command);
+              
+              // Process command
+              processCommand(command);
+              
+              // Clear input
+              commandInput.value = '';
+              
+              // Update line count
+              commandCount++;
+              lineCount.textContent = `Line: ${commandCount + 1}`;
+              
+              // Scroll to bottom
+              scrollToBottom();
+            }
+          }
+        });
+        
+        // Add command to history display
+        function addCommandToHistory(command) {
+          const commandLine = document.createElement('div');
+          commandLine.className = 'output-line';
+          commandLine.innerHTML = `
+            <span class="command-prompt font-bold">mentor:</span>
+            <span class="command-path px-2">~/username $</span>
+            <span class="text-white">${command}</span>
+          `;
+          commandHistory.appendChild(commandLine);
+        }
+        
+        // Process command and display output
+        function processCommand(command) {
+          const outputLine = document.createElement('div');
+          outputLine.className = 'output-line';
+          
+          let output = '';
+          
+          // Simple command processing
+          if (command === 'help' || command === 'help()') {
+            output = `<span class="text-green-400">Type "copyright", "credits" or "license" for more information.</span>`;
+          } else if (command === 'version' || command === '--version') {
+            output = `<span class="text-green-400">Python 3.11.0</span>`;
+          } else if (command === 'clear') {
+            commandHistory.innerHTML = '';
+            return;
+          } else if (command.includes('print')) {
+            const match = command.match(/print\(['"](.*)['"]\)/);
+            if (match) {
+              output = `<span class="text-gray-300">${match[1]}</span>`;
+            } else {
+              output = `<span class="error-message">SyntaxError: invalid syntax</span>`;
+            }
+          } else if (command === '') {
+            // Do nothing for empty commands
+            return;
+          } else {
+            output = `<span class="error-message">Command not found: ${command}</span>`;
+          }
+          
+          outputLine.innerHTML = output;
+          commandHistory.appendChild(outputLine);
+        }
+        
+        // Scroll to bottom of terminal
+        function scrollToBottom() {
+          const terminalContent = document.querySelector('.terminal-content');
+          terminalContent.scrollTop = terminalContent.scrollHeight;
+        }
+        
+        // Blinking cursor effect
+        setInterval(() => {
+          commandCursor.style.visibility = commandCursor.style.visibility === 'hidden' ? 'visible' : 'hidden';
+        }, 500);
+        
+        // Initial focus
+        commandInput.focus();
+      });
+    </script>
+  </body>
+</html>
